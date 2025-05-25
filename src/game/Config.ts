@@ -1,6 +1,8 @@
-import Phaser from 'phaser';
-import { Boot } from './Boot';
-import { Play } from './Play';
+import Phaser from "phaser"
+import { Boot } from "./Boot"
+import { Play } from "./Play"
+import { OverScene } from "./OverScene"
+import { VictoryScene } from "./VictoryScene"
 
 export var gameConfig = {
   type: Phaser.AUTO,
@@ -9,11 +11,11 @@ export var gameConfig = {
   roundPixels: true,
   backgroundColor: 0x000000,
   physics: {
-    default: 'arcade',
+    default: "arcade",
     arcade: {
       gravity: { y: 300 },
       // debug: true,
     },
   },
-  scene: [Boot, Play],
-};
+  scene: [Boot, Play, OverScene, VictoryScene],
+}

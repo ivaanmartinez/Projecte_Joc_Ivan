@@ -18,12 +18,24 @@ export class VictoryScene extends Phaser.Scene {
     })
     victoryText.setOrigin(0.5)
 
+    // Mensaje de felicitación
+    const congratsText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      "¡Has completado todos los niveles!",
+      {
+        fontSize: "24px",
+        color: "#ffffff",
+      },
+    )
+    congratsText.setOrigin(0.5)
+
     // Puntuación
     const score = this.registry.get("score") || 0
     const scoreText = this.add.text(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2 + 30,
-      `Puntuación: ${score}`,
+      this.cameras.main.height / 2 + 50,
+      `Puntuación Final: ${score}`,
       {
         fontSize: "32px",
         color: "#ffffff",
@@ -31,10 +43,10 @@ export class VictoryScene extends Phaser.Scene {
     )
     scoreText.setOrigin(0.5)
 
-    // Botón para reiniciar
+    // Botón para jugar de nuevo
     const restartButton = this.add.text(
       this.cameras.main.width / 2,
-      this.cameras.main.height / 2 + 100,
+      this.cameras.main.height / 2 + 120,
       "Jugar de nuevo",
       {
         fontSize: "24px",
@@ -55,14 +67,18 @@ export class VictoryScene extends Phaser.Scene {
       restartButton.clearTint()
     })
 
-    // Reiniciar juego al hacer clic
+    // Reiniciar juego al hacer clic (volver al nivel 1)
     restartButton.on("pointerdown", () => {
+      // Resetear todo para empezar desde el principio
+      this.registry.set("score", 0)
+      this.registry.set("currentLevel", 1)
+      this.registry.set("hasKey", false)
       this.scene.start("Play")
     })
 
     // Animación de entrada
     this.tweens.add({
-      targets: [victoryText, scoreText],
+      targets: [victoryText, congratsText],
       y: "-=20",
       duration: 1000,
       ease: "Bounce",

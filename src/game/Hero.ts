@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import Phaser from "phaser"
 import type { Play } from "./Play"
 import { Bullet } from "./Bullet"
 
@@ -7,9 +7,9 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   animations: any
   dead = false
   lives = 3
-  canShoot = true;
-  shootCooldown = 500;
-  bullets: Phaser.Physics.Arcade.Group | undefined;
+  canShoot = true
+  shootCooldown = 500
+  bullets: Phaser.Physics.Arcade.Group | undefined
 
   constructor(scene: Play, x, y) {
     super(scene, x, y, "hero")
@@ -17,22 +17,23 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
     this.setOrigin(0.5, 0.5)
     this.initKeys(scene)
 
-    // Crear grupo de balas con gravedad desactivada
+    // Crear grupo de balas con configuración específica
     this.bullets = scene.physics.add.group({
       classType: Bullet,
-      maxSize: 10,
+      maxSize: 15,
       runChildUpdate: true,
-      allowGravity: false
-    });
+      allowGravity: false,
+      immovable: true,
+    })
   }
 
   update() {
     if (this.dead) return
 
     if (this.keys?.up?.isDown && this.body.touching.down) {
-      this.jump();
+      this.jump()
     } else if (this.keys?.space?.isDown && this.canShoot) {
-      this.shoot();
+      this.shoot()
     } else if (this.keys?.left?.isDown) {
       this.runLeft()
     } else if (this.keys?.right?.isDown) {
@@ -90,48 +91,53 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   }
 
   shoot() {
-    if (!this.canShoot || this.dead || !this.bullets) return;
-    
+    if (!this.canShoot || this.dead || !this.bullets) return
+
     // Determinar la dirección basada en la orientación del héroe
-    const direction = this.flipX ? -1 : 1;
-    
+    const direction = this.flipX ? -1 : 1
+
     // Calcular la posición exacta desde donde sale la bala
-    const offsetX = direction > 0 ? 20 : -20;
-    const offsetY = -10;
-    
-    const bulletX = this.x + offsetX;
-    const bulletY = this.y + offsetY;
-    
-    // Efecto de retroceso
+    const offsetX = direction > 0 ? 25 : -25
+    const offsetY = -5
+
+    const bulletX = this.x + offsetX
+    const bulletY = this.y + offsetY
+
+    // Efecto de retroceso más pronunciado
     this.scene.tweens.add({
       targets: this,
-      x: this.x - (direction * 5),
+      x: this.x - direction * 8,
+      duration: 80,
+      yoyo: true,
+      ease: "Power2",
+    })
+
+    // Crear la bala
+    const bullet = new Bullet(this.scene, bulletX, bulletY, direction)
+
+    // Añadir al grupo
+    this.bullets.add(bullet)
+
+    // Efecto de flash al disparar
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 1.5,
       duration: 50,
       yoyo: true,
-      ease: 'Power1'
-    });
-    
-    // Crear la bala directamente sin usar el grupo
-    const bullet = new Bullet(this.scene, bulletX, bulletY, direction);
-    
-    // Asegurarse de que la bala no tenga gravedad (redundante pero por seguridad)
-    if (bullet.body) {
-      bullet.body.gravity.set(0, 0);
-      (bullet.body as Phaser.Physics.Arcade.Body).velocity.x = direction * 400;
-      (bullet.body as Phaser.Physics.Arcade.Body).velocity.y = 0;
-    }
-    
-    // Añadir al grupo después de configurar
-    this.bullets.add(bullet);
-    
-    // Reproducir sonido
-    this.scene.sound.play("sfx:jump", { volume: 0.5 });
-    
+      ease: "Power1",
+    })
+
+    // Reproducir sonido de disparo (usando el sonido de salto por ahora)
+    this.scene.sound.play("sfx:jump", {
+      volume: 0.3,
+      rate: 1.5, // Hacer el sonido más agudo para que suene como disparo
+    })
+
     // Establecer cooldown
-    this.canShoot = false;
+    this.canShoot = false
     this.scene.time.delayedCall(this.shootCooldown, () => {
-      this.canShoot = true;
-    });
+      this.canShoot = true
+    })
   }
 
   getAnimationName() {
@@ -151,7 +157,7 @@ export class Hero extends Phaser.Physics.Arcade.Sprite {
   private initKeys(scene) {
     this.keys = scene.input.keyboard.createCursorKeys()
     if (this.keys) {
-      (this.keys as any).space = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      ;(this.keys as any).space = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
     }
   }
 }

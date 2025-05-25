@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import Phaser from "phaser"
 import level1 from "../data/level1.json"
 import level2 from "../data/level2.json"
 
@@ -64,31 +64,39 @@ export class Boot extends Phaser.Scene {
 
   create() {
     console.log("Boot.create()")
-    
+
     // Crear una textura para las balas
-    this.createBulletTexture();
-    
+    this.createBulletTexture()
+
     this.scene.start("Play")
   }
-  
+
   createBulletTexture() {
-    // Crear una textura simple pero efectiva para las balas
-    const graphics = this.add.graphics();
-    
-    // Dibujar un proyectil alargado
-    graphics.fillStyle(0xffff00); // Amarillo
-    graphics.fillRect(0, 2, 12, 4); // Cuerpo principal
-    
-    // Punta
-    graphics.fillStyle(0xff6600); // Naranja
-    graphics.fillTriangle(12, 4, 16, 4, 12, 6);
-    
-    // Brillo
-    graphics.fillStyle(0xffffff); // Blanco
-    graphics.fillRect(2, 3, 3, 1);
-    
+    // Crear una textura más realista para las balas
+    const graphics = this.add.graphics()
+
+    // Cuerpo principal de la bala (dorado/bronce)
+    graphics.fillStyle(0xdaa520)
+    graphics.fillRoundedRect(0, 1, 10, 6, 1)
+
+    // Punta de la bala (plateado)
+    graphics.fillStyle(0xc0c0c0)
+    graphics.fillTriangle(10, 2, 14, 4, 10, 6)
+
+    // Casquillo trasero (más oscuro)
+    graphics.fillStyle(0xb8860b)
+    graphics.fillRect(0, 2, 2, 4)
+
+    // Brillo superior
+    graphics.fillStyle(0xffffff)
+    graphics.fillRect(2, 2, 6, 1)
+
+    // Línea de separación
+    graphics.lineStyle(1, 0x8b4513)
+    graphics.lineBetween(8, 1, 8, 7)
+
     // Generar la textura
-    graphics.generateTexture('bullet', 16, 8);
-    graphics.destroy();
+    graphics.generateTexture("bullet", 16, 8)
+    graphics.destroy()
   }
 }

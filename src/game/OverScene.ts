@@ -55,8 +55,12 @@ export class OverScene extends Phaser.Scene {
       restartButton.clearTint()
     })
 
-    // Reiniciar juego al hacer clic
+    // Reiniciar juego al hacer clic (volver al nivel 1)
     restartButton.on("pointerdown", () => {
+      // Resetear todo para empezar desde el principio
+      this.registry.set("score", 0)
+      this.registry.set("currentLevel", 1)
+      this.registry.set("hasKey", false)
       this.scene.start("Play")
     })
 

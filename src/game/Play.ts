@@ -16,7 +16,7 @@ export class Play extends Phaser.Scene {
   coinIcon: any
   spiders: Spider[] | undefined
 
-  groups: { [key: string]: Phaser.Physics.Arcade.Group}  | undefined
+  groups: { [key: string]: Phaser.Physics.Arcade.Group } | undefined
 
   scoreText: Phaser.GameObjects.BitmapText | undefined
 
@@ -32,35 +32,30 @@ export class Play extends Phaser.Scene {
 
   create() {
     console.log("Play.create()")
+
+    // Obtener el nivel actual del registro (por defecto nivel 1)
+    this.currentLevel = this.registry.get("currentLevel") || 1
+
     this.initAnimations()
     this.initLevel()
     this.initCamera()
     this.initPhysics()
     this.initScore()
-    
+
     // Configurar la física global para las balas
-    this.physics.world.on('worldbounds', (body) => {
+    this.physics.world.on("worldbounds", (body) => {
       // Si una bala toca los límites del mundo, destruirla
-      if (body.gameObject && body.gameObject.texture.key === 'bullet') {
-        body.gameObject.destroy();
+      if (body.gameObject && body.gameObject.texture.key === "bullet") {
+        body.gameObject.destroy()
       }
-    });
+    })
   }
 
   update() {
     if (this.hero) {
-      this.hero.update();
-      
-      // Mantener las balas en línea recta
-      if (this.hero.bullets) {
-        this.hero.bullets.getChildren().forEach((bullet: any) => {
-          if (bullet.body && bullet.body.velocity.y !== 0) {
-            bullet.body.velocity.y = 0;
-          }
-        });
-      }
+      this.hero.update()
     }
-    
+
     if (this.spiders) {
       this.spiders.forEach((spider) => spider.update())
     }
@@ -76,7 +71,7 @@ export class Play extends Phaser.Scene {
   initLevel() {
     this.level = new Level(this)
 
-    this.gotoLevel(this.currentLevel)
+    this.loadLevel(this.currentLevel)
 
     const props = ["hero", "key", "keyIcon", "coinIcon", "door", "spiders", "groups"]
 
@@ -109,27 +104,15 @@ export class Play extends Phaser.Scene {
     }
 
     if (this.hero && this.groups?.spiders) {
-      this.physics.add.overlap(this.hero, this.groups.spiders, this.doBattle, undefined, this);
-      
+      this.physics.add.overlap(this.hero, this.groups.spiders, this.doBattle, undefined, this)
+
       if (this.hero.bullets) {
-        this.physics.add.overlap(
-          this.hero.bullets,
-          this.groups.spiders,
-          this.bulletHitSpider,
-          undefined,
-          this
-        );
+        this.physics.add.overlap(this.hero.bullets, this.groups.spiders, this.bulletHitSpider, undefined, this)
       }
     }
-    
+
     if (this.hero && this.level?.platforms && this.hero.bullets) {
-      this.physics.add.collider(
-        this.hero.bullets,
-        this.level.platforms,
-        this.bulletHitPlatform,
-        undefined,
-        this
-      );
+      this.physics.add.collider(this.hero.bullets, this.level.platforms, this.bulletHitPlatform, undefined, this)
     }
 
     if (this.hero && this.key) {
@@ -174,26 +157,48 @@ export class Play extends Phaser.Scene {
   }
 
   bulletHitSpider(bullet, spider) {
-    // Destruir la bala
-    bullet.destroy();
-    
-    // Matar a la araña
-    this.sound.play("sfx:stomp");
-    spider.die();
-    
-    // Añadir puntos
-    this.score += 5;
-    if (this.scoreText) {
-      this.scoreText.text = `X${this.score}`;
+    // Crear efecto de impacto
+    const impactX = bullet.x
+    const impactY = bullet.y
+
+    // Partículas de impacto
+    for (let i = 0; i < 5; i++) {
+      const particle = this.add.circle(impactX, impactY, 2, 0xffff00)
+      this.tweens.add({
+        targets: particle,
+        x: impactX + Phaser.Math.Between(-20, 20),
+        y: impactY + Phaser.Math.Between(-20, 20),
+        alpha: 0,
+        scale: 0,
+        duration: 300,
+        ease: "Power2",
+        onComplete: () => particle.destroy(),
+      })
     }
-    
-    // Efecto de cámara
-    this.cameras.main.shake(100, 0.01);
+
+    // Destruir la bala
+    bullet.destroy()
+
+    // Matar a la araña con efecto
+    this.sound.play("sfx:stomp", { volume: 0.8 })
+    spider.die()
+
+    // Añadir más puntos por disparo
+    this.score += 10
+    if (this.scoreText) {
+      this.scoreText.text = `X${this.score}`
+    }
+
+    // Efecto de cámara más intenso
+    this.cameras.main.shake(150, 0.02)
+
+    // Flash de pantalla
+    this.cameras.main.flash(100, 255, 255, 0)
   }
-  
+
   bulletHitPlatform(bullet, platform) {
     // Destruir la bala
-    bullet.destroy();
+    bullet.destroy()
   }
 
   updateLifeDisplay() {
@@ -227,6 +232,10 @@ export class Play extends Phaser.Scene {
   reset() {
     this.score = 0
     this.hasKey = false
+    this.currentLevel = 1
+    this.registry.set("currentLevel", 1)
+    this.registry.set("score", 0)
+    this.registry.set("hasKey", false)
     if (this.hero) {
       this.hero.lives = 3
     }
@@ -234,30 +243,47 @@ export class Play extends Phaser.Scene {
   }
 
   gotoNextLevel() {
-    this.reset()
-    this.currentLevel = this.currentLevel < LEVEL_COUNT ? ++this.currentLevel : 1
+    // Verificar si acabamos de completar el último nivel
+    if (this.currentLevel >= LEVEL_COUNT) {
+      // ¡Has ganado! Ir a la pantalla de victoria
+      this.registry.set("score", this.score)
+      this.registry.set("currentLevel", this.currentLevel)
+
+      this.cameras.main.fade(1000)
+      this.cameras.main.on("camerafadeoutcomplete", (camera, effect) => {
+        this.scene.start("Victory")
+      })
+      return
+    }
+
+    // Si no hemos completado todos los niveles, ir al siguiente
+    this.hasKey = false // Solo resetear la llave, mantener puntuación y vidas
+    this.currentLevel = this.currentLevel + 1
+    this.registry.set("currentLevel", this.currentLevel)
 
     this.cameras.main.fade(1000)
     this.cameras.main.on("camerafadeoutcomplete", (camera, effect) => {
       this.scene.start("Play")
-      this.gotoLevel(this.currentLevel)
     })
   }
 
-  gotoLevel(level) {
+  loadLevel(level: number) {
     if (this.level) {
       this.level.loadLevel(this.cache.json.get(`level:${level}`))
     }
   }
 
   gameOver() {
-    this.reset()
+    // Guardar la puntuación para la pantalla de game over
+    this.registry.set("score", this.score)
+
     if (this.hero) {
       this.hero.die()
     }
+
     this.cameras.main.fade(1000)
     this.cameras.main.on("camerafadeoutcomplete", (camera, effect) => {
-      this.scene.restart()
+      this.scene.start("GameOver")
     })
   }
 }

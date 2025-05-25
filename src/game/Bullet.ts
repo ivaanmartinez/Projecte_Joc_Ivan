@@ -1,63 +1,78 @@
 export class Bullet extends Phaser.Physics.Arcade.Sprite {
-  speed = 400;
-  
+  speed = 500
+  direction: number
+
   constructor(scene: Phaser.Scene, x: number, y: number, direction: number) {
-    super(scene, x, y, "bullet");
-    
-    // Añadir la bala a la escena
-    scene.add.existing(this);
-    
-    // Habilitar física
-    scene.physics.add.existing(this);
-    
+    super(scene, x, y, "bullet")
+
+    this.direction = direction
+
+    // Añadir la bala a la escena y física
+    scene.add.existing(this)
+    scene.physics.add.existing(this)
+
     // Configurar la bala
-    this.setOrigin(0.5, 0.5);
-    this.setScale(0.7);
-    
+    this.setOrigin(0.5, 0.5)
+    this.setScale(0.8)
+
     // Establecer la dirección visual
-    this.flipX = direction < 0;
-    
-    // IMPORTANTE: Desactivar gravedad de múltiples maneras para asegurar que funcione
+    this.flipX = direction < 0
+
+    // CRÍTICO: Configurar el cuerpo físico correctamente
     if (this.body) {
-      // Método 1: Desactivar gravedad directamente en el cuerpo
-      (this.body as Phaser.Physics.Arcade.Body).allowGravity = false;
-      
-      // Método 2: Establecer gravedad a cero
-      (this.body as Phaser.Physics.Arcade.Body).gravity.set(0, 0);
-      
-      // Método 3: Establecer velocidad Y a cero para mantenerla constante
-      (this.body as Phaser.Physics.Arcade.Body).setVelocity(direction * this.speed, 0);
-      
-      // Método 4: Fijar la posición Y para que no cambie
-      (this.body as Phaser.Physics.Arcade.Body).immovable = true;
+      const body = this.body as Phaser.Physics.Arcade.Body
+
+      // Desactivar completamente la gravedad
+      body.setGravity(0, 0)
+      body.allowGravity = false
+
+      // Establecer velocidad constante
+      body.setVelocity(direction * this.speed, 0)
+
+      // Hacer que la bala no sea afectada por colisiones
+      body.setImmovable(true)
+
+      // Configurar el tamaño de colisión
+      body.setSize(12, 4)
     }
-    
-    // Añadir rotación para efecto visual
-    scene.tweens.add({
+
+    // Efecto visual de rotación
+    this.scene.tweens.add({
       targets: this,
       angle: direction > 0 ? 360 : -360,
-      duration: 1000,
-      repeat: -1
-    });
-    
-    // Auto-destruir después de 2 segundos
-    scene.time.delayedCall(2000, () => {
-      this.destroy();
-    });
+      duration: 800,
+      repeat: -1,
+      ease: "Linear",
+    })
+
+    // Auto-destruir después de 3 segundos
+    this.scene.time.delayedCall(3000, () => {
+      if (this.active) {
+        this.destroy()
+      }
+    })
   }
-  
-  preUpdate(time, delta) {
-    super.preUpdate(time, delta);
-    
-    // IMPORTANTE: Mantener la posición Y constante en cada actualización
-    if (this.body && this.body.velocity.y !== 0) {
-      this.body.velocity.y = 0;
+
+  preUpdate(time: number, delta: number) {
+    super.preUpdate(time, delta)
+
+    // Forzar que la bala mantenga su velocidad horizontal y Y = 0
+    if (this.body && this.active) {
+      const body = this.body as Phaser.Physics.Arcade.Body
+      body.velocity.x = this.direction * this.speed
+      body.velocity.y = 0
     }
-    
+
     // Destruir si sale de los límites del mundo
-    if (this.x < 0 || this.x > this.scene.physics.world.bounds.width ||
-        this.y < 0 || this.y > this.scene.physics.world.bounds.height) {
-      this.destroy();
+    const bounds = this.scene.physics.world.bounds
+    if (this.x < -50 || this.x > bounds.width + 50 || this.y < -50 || this.y > bounds.height + 50) {
+      this.destroy()
     }
+  }
+
+  destroy() {
+    // Limpiar tweens antes de destruir
+    this.scene.tweens.killTweensOf(this)
+    super.destroy()
   }
 }
